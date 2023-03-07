@@ -31,7 +31,7 @@ struct VertexData{
 };
 
 struct TriData{
-	int v1, v2, v3;
+	GLuint v1, v2, v3;
 };
 
 /*
@@ -184,6 +184,7 @@ int loadPLY(std::string path, std::vector<VertexData>& vertices, std::vector<Tri
 		td.v3 = values[2];
 		faces.push_back(td);
 	}
+	return 0;
 }
 
 /**
@@ -270,7 +271,9 @@ void loadARGB_BMP(const char* imagepath, unsigned char** data, unsigned int* wid
 }
 
 
-class TexturedMesh {
+class TexturedMesh {	
+
+	public:
 		std::string PLYPath, texturePath;
 		std::vector<VertexData> vertices;
 		std::vector<TriData> faces;
@@ -278,8 +281,6 @@ class TexturedMesh {
 		
 		unsigned char* textureData;
 		unsigned int textureWidth, textureHeight;
-
-	public:
 		TexturedMesh(std::string ply_path, std::string tex_path){
 			PLYPath = ply_path;
 			texturePath = tex_path;
@@ -326,24 +327,7 @@ class TexturedMesh {
 				12,
 				&faces[0]
 			);
-
-
-			// Create texture object
-			glGenTextures(GL_TEXTURE_2D, &textureObj);
-			glBindTexture(GL_TEXTURE_2D, textureObj);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RGBA,
-				textureWidth,
-				textureHeight,
-				0,
-				GL_BGR,
-				GL_UNSIGNED_BYTE,
-				textureData
-			);
-			glGenerateMipmap(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindVertexArray(0);
 
 			// Create shader program
 			// Create shaders (shamelessly stolen from class demo code as instructed)
@@ -392,30 +376,113 @@ class TexturedMesh {
 
 			glDeleteShader(VertexShaderID);
 			glDeleteShader(FragmentShaderID);
+
+			// Create texture object
+			glGenTextures(1, &textureObj);
+			glBindTexture(GL_TEXTURE_2D, textureObj);
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_RGBA,
+				textureWidth,
+				textureHeight,
+				0,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				textureData
+			);
+			glGenerateMipmap(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 		void draw(glm::mat4 mvp){
 			// Get location of uniform MVP matrix
 			GLuint matrixID = glGetUniformLocation(programID, "MVP");
 
-			// Set shader program and uniform MVP matrix
-			glUseProgram(programID);
-			glUniformMatrix4fv(matrixID, 1, GL_FALSE, &mvp[0][0]);
-
 			// Set active texture unit
 			glActiveTexture(GL_TEXTURE0);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, textureObj);
+			
+			// Enable blending
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+			// Set shader program and uniform MVP matrix
+			glUseProgram(programID);
+			glUniformMatrix4fv(matrixID, 1, GL_FALSE, &mvp[0][0]);
+			
 			glBindVertexArray(meshVAO);
+
+			glDrawElements(
+				GL_TRIANGLES,
+				faces.size(),
+				GL_UNSIGNED_INT,
+				&faces[0]
+			);
+			glBindVertexArray(0);
+			glUseProgram(0);
+			glBindTexture(GL_TEXTURE_2D, 0);
 
 		}
 };
 
+class Axes {
+
+	glm::vec3 origin;
+	glm::vec3 extents;
+
+	glm::vec3 xcol = glm::vec3(1.0f, 0.0f, 0.0f);
+	glm::vec3 ycol = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 zcol = glm::vec3(0.0f, 0.0f, 1.0f);
+
+public:
+
+	Axes(glm::vec3 orig, glm::vec3 ex) : origin(orig), extents(ex) {}
+
+	void draw() {
+
+		glMatrixMode( GL_MODELVIEW );
+		glPushMatrix();
+
+
+		glLineWidth(2.0f);
+		glBegin(GL_LINES);
+		glColor3f(xcol.x, xcol.y, xcol.z);
+		glVertex3f(origin.x, origin.y, origin.z);
+		glVertex3f(origin.x + extents.x, origin.y, origin.z);
+
+		glVertex3f(origin.x + extents.x, origin.y, origin.z);
+		glVertex3f(origin.x + extents.x, origin.y, origin.z+0.1);
+		glVertex3f(origin.x + extents.x, origin.y, origin.z);
+		glVertex3f(origin.x + extents.x, origin.y, origin.z-0.1);
+
+		glColor3f(ycol.x, ycol.y, ycol.z);
+		glVertex3f(origin.x, origin.y, origin.z);
+		glVertex3f(origin.x, origin.y + extents.y, origin.z);
+
+		glVertex3f(origin.x, origin.y + extents.y, origin.z);
+		glVertex3f(origin.x, origin.y + extents.y, origin.z+0.1);
+		glVertex3f(origin.x, origin.y + extents.y, origin.z);
+		glVertex3f(origin.x, origin.y + extents.y, origin.z-0.1);
+		
+		glColor3f(zcol.x, zcol.y, zcol.z);
+		glVertex3f(origin.x, origin.y, origin.z);
+		glVertex3f(origin.x, origin.y, origin.z + extents.z);
+		
+		glVertex3f(origin.x, origin.y, origin.z + extents.z);
+		glVertex3f(origin.x+0.1, origin.y, origin.z + extents.z);
+
+		glVertex3f(origin.x, origin.y, origin.z + extents.z);
+		glVertex3f(origin.x-0.1, origin.y, origin.z + extents.z);
+		glEnd();
+
+
+		glPopMatrix();
+	}
+
+};
+
 int main(){
-	// Load data from files
-	std::vector<TexturedMesh*> meshes;
-	TexturedMesh* walls = new TexturedMesh("./assets/Walls.ply", "./assets/walls.bmp");
-	meshes.push_back(walls);
 
 	// Initialize window
 	if (!glfwInit()){
@@ -444,8 +511,26 @@ int main(){
 
 	glm::mat4 mvp;
 
+	// Load data from files
+	std::vector<TexturedMesh> meshes;
+	meshes.push_back(TexturedMesh("./assets/Walls.ply", "./assets/walls.bmp"));
+	meshes.push_back(TexturedMesh("./assets/WoodObjects.ply", "./assets/woodobjects.bmp"));
+	meshes.push_back(TexturedMesh("./assets/Table.ply", "./assets/table.bmp"));
+	meshes.push_back(TexturedMesh("./assets/WindowBG.ply", "./assets/windowbg.bmp"));
+	meshes.push_back(TexturedMesh("./assets/Patio.ply", "./assets/patio.bmp"));
+	meshes.push_back(TexturedMesh("./assets/Floor.ply", "./assets/floor.bmp"));
+	meshes.push_back(TexturedMesh("./assets/Bottles.ply", "./assets/bottles.bmp"));
+	meshes.push_back(TexturedMesh("./assets/Curtains.ply", "./assets/curtains.bmp"));
+	meshes.push_back(TexturedMesh("./assets/DoorBG.ply", "./assets/doorbg.bmp"));
+	meshes.push_back(TexturedMesh("./assets/MetalObjects.ply", "./assets/metalobjects.bmp"));
+
+	glClearColor(0,0,0,1);
+
+	Axes ax(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+
 	// Main loop
 	while (!glfwWindowShouldClose(window)){
+		glfwPollEvents();
 		// Clear screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -459,7 +544,7 @@ int main(){
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 		// TODO: camera movement
-		glm::vec3 eye = {2.0f, 2.0f, 2.0f};
+		glm::vec3 eye = {0.5f, 0.5f, 0.5f};
 		glm::vec3 up = {0.0f, 1.0f, 0.0f};
 		glm::vec3 centre = {0.0f, 0.0f, 0.0f};
 		glm::mat4 view = glm::lookAt(eye, centre, up);
@@ -470,8 +555,12 @@ int main(){
 
 		// Draw meshes
 		for (int i = 0; i < meshes.size(); i++){
-			meshes[i]->draw(mvp);
+			meshes[i].draw(mvp);
 		}
+
+		ax.draw();
+
+		glfwSwapBuffers(window);
 	}
 
 	return 0;
