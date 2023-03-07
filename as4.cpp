@@ -504,18 +504,9 @@ int main(){
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Set up perspective projection
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(FOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.001f, 1000.0f);
-		glLoadMatrixf(glm::value_ptr(projection));
-
-		// Set up modelview
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
 		
 		glm::mat4 model = glm::mat4(1.0f);
-		glm::mat4 modelview = view * model;
-		glLoadMatrixf(glm::value_ptr(view));
 		mvp = projection * view * model;
 
 		// Draw meshes
