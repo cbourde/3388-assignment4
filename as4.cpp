@@ -19,6 +19,8 @@
 const float SCREEN_WIDTH = 1280;
 const float SCREEN_HEIGHT = 720;
 const float FOV = 45.0f;
+const float CAMERA_MOVE_SPEED = 0.05f;
+const float CAMERA_ROTATION_SPEED = 1.0f;
 
 GLFWwindow* window;
 
@@ -388,7 +390,7 @@ class TexturedMesh {
 				textureWidth,
 				textureHeight,
 				0,
-				GL_RGBA,
+				GL_BGRA,
 				GL_UNSIGNED_BYTE,
 				textureData
 			);
@@ -427,61 +429,6 @@ class TexturedMesh {
 		}
 };
 
-class Axes {
-
-	glm::vec3 origin;
-	glm::vec3 extents;
-
-	glm::vec3 xcol = glm::vec3(1.0f, 0.0f, 0.0f);
-	glm::vec3 ycol = glm::vec3(0.0f, 1.0f, 0.0f);
-	glm::vec3 zcol = glm::vec3(0.0f, 0.0f, 1.0f);
-
-public:
-
-	Axes(glm::vec3 orig, glm::vec3 ex) : origin(orig), extents(ex) {}
-
-	void draw() {
-
-		glMatrixMode( GL_MODELVIEW );
-		glPushMatrix();
-
-
-		glLineWidth(2.0f);
-		glBegin(GL_LINES);
-		glColor3f(xcol.x, xcol.y, xcol.z);
-		glVertex3f(origin.x, origin.y, origin.z);
-		glVertex3f(origin.x + extents.x, origin.y, origin.z);
-
-		glVertex3f(origin.x + extents.x, origin.y, origin.z);
-		glVertex3f(origin.x + extents.x, origin.y, origin.z+0.1);
-		glVertex3f(origin.x + extents.x, origin.y, origin.z);
-		glVertex3f(origin.x + extents.x, origin.y, origin.z-0.1);
-
-		glColor3f(ycol.x, ycol.y, ycol.z);
-		glVertex3f(origin.x, origin.y, origin.z);
-		glVertex3f(origin.x, origin.y + extents.y, origin.z);
-
-		glVertex3f(origin.x, origin.y + extents.y, origin.z);
-		glVertex3f(origin.x, origin.y + extents.y, origin.z+0.1);
-		glVertex3f(origin.x, origin.y + extents.y, origin.z);
-		glVertex3f(origin.x, origin.y + extents.y, origin.z-0.1);
-		
-		glColor3f(zcol.x, zcol.y, zcol.z);
-		glVertex3f(origin.x, origin.y, origin.z);
-		glVertex3f(origin.x, origin.y, origin.z + extents.z);
-		
-		glVertex3f(origin.x, origin.y, origin.z + extents.z);
-		glVertex3f(origin.x+0.1, origin.y, origin.z + extents.z);
-
-		glVertex3f(origin.x, origin.y, origin.z + extents.z);
-		glVertex3f(origin.x-0.1, origin.y, origin.z + extents.z);
-		glEnd();
-
-
-		glPopMatrix();
-	}
-
-};
 
 int main(){
 
@@ -527,11 +474,32 @@ int main(){
 
 	glClearColor(0,0,0,1);
 
-	Axes ax(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+	float yaw = 0.0f;
+	glm::vec3 cameraDirection = {cos(glm::radians(yaw)), 0.0f, sin(glm::radians(yaw))};
+	glm::vec3 cameraPosition = {0.0f, 0.5f, 0.0f};
+	glm::vec3 up = {0.0f, 1.0f, 0.0f};
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)){
 		glfwPollEvents();
+		// Process keyboard inputs
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+			yaw -= CAMERA_ROTATION_SPEED;
+		}
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+			yaw += CAMERA_ROTATION_SPEED;
+		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+			cameraPosition += (cameraDirection * CAMERA_MOVE_SPEED);
+		}
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+			cameraPosition -= (cameraDirection * CAMERA_MOVE_SPEED);
+		}
+
+		// Set camera look
+		cameraDirection = {cos(glm::radians(yaw)), 0.0f, sin(glm::radians(yaw))};
+		glm::mat4 view = glm::lookAt(cameraPosition, cameraPosition + cameraDirection, up);
+
 		// Clear screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -544,11 +512,7 @@ int main(){
 		// Set up modelview
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
-		// TODO: camera movement
-		glm::vec3 eye = {-2.0f, 2.0f, -2.0f};
-		glm::vec3 up = {0.0f, 1.0f, 0.0f};
-		glm::vec3 centre = {0.0f, 0.0f, 0.0f};
-		glm::mat4 view = glm::lookAt(eye, centre, up);
+		
 		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 modelview = view * model;
 		glLoadMatrixf(glm::value_ptr(view));
@@ -558,8 +522,6 @@ int main(){
 		for (int i = 0; i < meshes.size(); i++){
 			meshes[i].draw(mvp);
 		}
-
-		ax.draw();
 
 		glfwSwapBuffers(window);
 	}
