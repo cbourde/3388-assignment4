@@ -40,7 +40,7 @@ struct TriData{
 */
 int loadPLY(std::string path, std::vector<VertexData>& vertices, std::vector<TriData>& faces){
 	// Try to open the file
-	printf("Reading PLY file %s\n", path);
+	printf("Reading PLY file %s\n", path.data());
 	std::ifstream file(path);
 	if (file.fail()){
 		printf("Error opening file\n");
@@ -272,8 +272,6 @@ void loadARGB_BMP(const char* imagepath, unsigned char** data, unsigned int* wid
 
 
 class TexturedMesh {	
-
-	public:
 		std::string PLYPath, texturePath;
 		std::vector<VertexData> vertices;
 		std::vector<TriData> faces;
@@ -281,11 +279,15 @@ class TexturedMesh {
 		
 		unsigned char* textureData;
 		unsigned int textureWidth, textureHeight;
+
+	public:
+		
 		TexturedMesh(std::string ply_path, std::string tex_path){
 			PLYPath = ply_path;
 			texturePath = tex_path;
 			loadARGB_BMP(texturePath.data(), &textureData, &textureWidth, &textureHeight);
 			loadPLY(PLYPath, vertices, faces);
+
 
 			// Create VAO
 			glGenVertexArrays(1, &meshVAO);
@@ -294,39 +296,38 @@ class TexturedMesh {
 			// Create VBOs
 			// Vertices
 			glGenBuffers(1, &vertexVBO);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexVBO);
+			glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT) * 11 * vertices.size(), &(vertices[0]), GL_STATIC_DRAW);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(
 				0,
 				3,
 				GL_FLOAT,
 				GL_FALSE,
-				44,				// 11 32bit floats per vertex = 44 bytes
-				&vertices[0]
+				sizeof(GL_FLOAT) * 11,
+				(void*) 0
 			);
 
 			// Texture coordinates
 			glGenBuffers(1, &textureVBO);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, textureVBO);
+			glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT) * 11 * vertices.size(), &(vertices[0]), GL_STATIC_DRAW);
+			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(
 				1,
 				2,
 				GL_FLOAT,
 				GL_FALSE,
-				44,
-				&(vertices[0].u)
+				sizeof(GL_FLOAT) * 11,
+				(void*) 36
 			);
+			
 
 			// Face vertex indices
 			glGenBuffers(1, &vertexIndicesVBO);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexIndicesVBO);
-			glVertexAttribPointer(
-				2,
-				3,
-				GL_INT,
-				GL_FALSE,
-				12,
-				&faces[0]
-			);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GL_UNSIGNED_INT) * 3 * faces.size(), &(faces[0]), GL_STATIC_DRAW);
+
 			glBindVertexArray(0);
 
 			// Create shader program
@@ -415,9 +416,9 @@ class TexturedMesh {
 
 			glDrawElements(
 				GL_TRIANGLES,
-				faces.size(),
+				faces.size() * 3,
 				GL_UNSIGNED_INT,
-				&faces[0]
+				(void*) 0
 			);
 			glBindVertexArray(0);
 			glUseProgram(0);
@@ -544,7 +545,7 @@ int main(){
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 		// TODO: camera movement
-		glm::vec3 eye = {0.5f, 0.5f, 0.5f};
+		glm::vec3 eye = {-2.0f, 2.0f, -2.0f};
 		glm::vec3 up = {0.0f, 1.0f, 0.0f};
 		glm::vec3 centre = {0.0f, 0.0f, 0.0f};
 		glm::mat4 view = glm::lookAt(eye, centre, up);
