@@ -468,10 +468,11 @@ int main(){
 	meshes.push_back(TexturedMesh("./assets/Patio.ply", "./assets/patio.bmp"));
 	meshes.push_back(TexturedMesh("./assets/Floor.ply", "./assets/floor.bmp"));
 	meshes.push_back(TexturedMesh("./assets/Bottles.ply", "./assets/bottles.bmp"));
-	meshes.push_back(TexturedMesh("./assets/Curtains.ply", "./assets/curtains.bmp"));
+	
 	meshes.push_back(TexturedMesh("./assets/DoorBG.ply", "./assets/doorbg.bmp"));
 	meshes.push_back(TexturedMesh("./assets/MetalObjects.ply", "./assets/metalobjects.bmp"));
-
+	meshes.push_back(TexturedMesh("./assets/Curtains.ply", "./assets/curtains.bmp"));
+	
 	glClearColor(0,0,0,1);
 
 	float yaw = 0.0f;
