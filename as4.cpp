@@ -397,9 +397,7 @@ class TexturedMesh {
 			glGenerateMipmap(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
-		void draw(glm::mat4 mvp){
-			// Get location of uniform MVP matrix
-			GLuint matrixID = glGetUniformLocation(programID, "MVP");
+		void draw(glm::mat4 mvp){			
 
 			// Set active texture unit
 			glActiveTexture(GL_TEXTURE0);
@@ -410,6 +408,9 @@ class TexturedMesh {
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+			// Get location of uniform MVP matrix
+			GLuint matrixID = glGetUniformLocation(programID, "MVP");
+			
 			// Set shader program and uniform MVP matrix
 			glUseProgram(programID);
 			glUniformMatrix4fv(matrixID, 1, GL_FALSE, &mvp[0][0]);
@@ -452,12 +453,7 @@ int main(){
 		printf("Failed to initialize GLEW\n");
 		glfwTerminate();
 		return -1;
-	}
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-
-	glm::mat4 mvp;
+	}		
 
 	// Load data from files
 	std::vector<TexturedMesh> meshes;
@@ -472,13 +468,21 @@ int main(){
 	meshes.push_back(TexturedMesh("./assets/DoorBG.ply", "./assets/doorbg.bmp"));
 	meshes.push_back(TexturedMesh("./assets/MetalObjects.ply", "./assets/metalobjects.bmp"));
 	meshes.push_back(TexturedMesh("./assets/Curtains.ply", "./assets/curtains.bmp"));
-	
+
+	// Enable depth testing
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glClearColor(0,0,0,1);
 
+	// Set up initial camera position and direction
 	float yaw = 0.0f;
 	glm::vec3 cameraDirection = {cos(glm::radians(yaw)), 0.0f, sin(glm::radians(yaw))};
 	glm::vec3 cameraPosition = {0.0f, 0.5f, 0.0f};
 	glm::vec3 up = {0.0f, 1.0f, 0.0f};
+
+	// Set up perspective projection
+	glm::mat4 projection = glm::perspective(glm::radians(FOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.001f, 1000.0f);
+	glm::mat4 mvp;
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)){
@@ -503,9 +507,6 @@ int main(){
 
 		// Clear screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Set up perspective projection
-		glm::mat4 projection = glm::perspective(glm::radians(FOV), SCREEN_WIDTH / SCREEN_HEIGHT, 0.001f, 1000.0f);
 		
 		glm::mat4 model = glm::mat4(1.0f);
 		mvp = projection * view * model;
